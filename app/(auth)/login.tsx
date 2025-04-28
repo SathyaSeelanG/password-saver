@@ -33,11 +33,11 @@ export default function LoginScreen() {
 
     if (!isPinSetup) {
       setupPin(pin);
-      router.replace('/(tabs)');
+      router.replace('/');
     } else {
       const success = login(pin);
       if (success) {
-        router.replace('/(tabs)');
+        router.replace('/');
       } else {
         Platform.OS !== 'web' && Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setError('Incorrect PIN');
@@ -55,7 +55,7 @@ export default function LoginScreen() {
 
       if (result.success) {
         Platform.OS !== 'web' && Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(tabs)');
+        router.replace('/');
       }
     } catch (error) {
       console.log('Authentication error:', error);

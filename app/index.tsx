@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, Platform, ActivityIndicator, Clipboard } from 'react-native';
-import { Search, Eye, EyeOff, Copy, Settings, Download, CirclePlus as PlusCircle } from 'lucide-react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, Platform, ActivityIndicator, Clipboard, Alert } from 'react-native';
+import { Search, Eye, EyeOff, Copy, Settings, Download, CirclePlus as PlusCircle, Edit, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { Link, useRouter, Redirect } from 'expo-router';
@@ -10,7 +10,7 @@ import EmptyState from '@/components/EmptyState';
 import ExportModal from '../components/ExportModal';
 import { Password } from '@/types';
 
-const PasswordItem = ({ item }: { item: Password }) => {
+const PasswordItem = ({ item, onEdit, onDelete }: { item: Password; onEdit: (id: string) => void; onDelete: (id: string) => void }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const router = useRouter();
 
@@ -31,39 +31,57 @@ const PasswordItem = ({ item }: { item: Password }) => {
         </BlurView>
         <View style={styles.cardHeaderText}>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>{item.appName}</Text>
-            <TouchableOpacity onPress={() => copyToClipboard(item.appName)}>
-              <Copy size={16} color="#6B7280" />
+            <Text style={styles.cardTitle} numberOfLines={1}>{item.appName}</Text>
+            <TouchableOpacity onPress={() => copyToClipboard(item.appName)} style={styles.copyButton}>
+              <Copy size={14} color="#6366F1" />
             </TouchableOpacity>
           </View>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardSubtitle}>{item.emailOrPhone}</Text>
-            <TouchableOpacity onPress={() => copyToClipboard(item.emailOrPhone)}>
-              <Copy size={16} color="#6B7280" />
+            <Text style={styles.cardSubtitle} numberOfLines={1}>{item.emailOrPhone}</Text>
+            <TouchableOpacity onPress={() => copyToClipboard(item.emailOrPhone)} style={styles.copyButton}>
+              <Copy size={14} color="#6366F1" />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <View style={styles.passwordRow}>
-        <Text style={styles.passwordText}>
+        <Text style={styles.passwordText} numberOfLines={1}>
           {isPasswordVisible ? item.password : '••••••••••'}
         </Text>
         <View style={styles.passwordActions}>
           <TouchableOpacity onPress={() => copyToClipboard(item.password)} style={styles.actionButton}>
-            <Copy size={16} color="#6B7280" />
+            <Copy size={14} color="#6366F1" />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPasswordVisible(!isPasswordVisible)}
             style={styles.actionButton}
           >
             {isPasswordVisible ? (
-              <EyeOff size={16} color="#6B7280" />
+              <EyeOff size={14} color="#6366F1" />
             ) : (
-              <Eye size={16} color="#6B7280" />
+              <Eye size={14} color="#6366F1" />
             )}
           </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity 
+          style={styles.editButton} 
+          onPress={() => onEdit(item.id)}
+        >
+          <Edit size={14} color="#6366F1" />
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.deleteButton} 
+          onPress={() => onDelete(item.id)}
+        >
+          <Trash2 size={14} color="#DC2626" />
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -73,8 +91,9 @@ export default function IndexPage() {
   const { isAuthenticated, isInitialized } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
-  const { passwords } = usePasswords();
+  const { passwords, deletePassword } = usePasswords();
   const [filteredPasswords, setFilteredPasswords] = useState<Password[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -90,10 +109,35 @@ export default function IndexPage() {
     }
   }, [searchQuery, passwords]);
 
+  const handleEditPassword = (id: string) => {
+    router.push(`/password/${id}`);
+  };
+
+  const handleDeletePassword = (id: string) => {
+    Alert.alert(
+      'Delete Password',
+      'Are you sure you want to delete this password?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Platform.OS !== 'web' && Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            deletePassword(id);
+          },
+        },
+      ]
+    );
+  };
+
   if (!isInitialized) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#1E40AF" />
+        <ActivityIndicator size="large" color="#6366F1" />
       </View>
     );
   }
@@ -111,24 +155,25 @@ export default function IndexPage() {
             onPress={() => setShowExportModal(true)}
             style={styles.headerButton}
           >
-            <Download size={24} color="#1E40AF" />
+            <Download size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Link href="/settings" asChild>
             <TouchableOpacity style={styles.headerButton}>
-              <Settings size={24} color="#1E40AF" />
+              <Settings size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </Link>
         </View>
       </View>
 
       <View style={styles.searchContainer}>
-        <Search size={20} color="#6B7280" />
+        <Search size={18} color="#6366F1" />
         <TextInput
           style={styles.searchInput}
           placeholder="Search passwords..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#9CA3AF"
+          clearButtonMode="while-editing"
         />
       </View>
 
@@ -137,14 +182,20 @@ export default function IndexPage() {
       ) : (
         <FlatList
           data={filteredPasswords}
-          renderItem={({ item }) => <PasswordItem item={item} />}
+          renderItem={({ item }) => (
+            <PasswordItem 
+              item={item} 
+              onEdit={handleEditPassword}
+              onDelete={handleDeletePassword}
+            />
+          )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      <Link href="/add" asChild>
+      <Link href="/password/new" asChild>
         <TouchableOpacity style={styles.fab}>
           <PlusCircle size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -162,10 +213,10 @@ export default function IndexPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F5F7FA',
   },
   header: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#6366F1',
     padding: 16,
     paddingTop: 48,
     flexDirection: 'row',
@@ -182,10 +233,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -194,53 +245,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     margin: 16,
-    padding: 12,
+    marginTop: 16,
+    padding: 10,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 2,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
     fontFamily: 'Inter-Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: '#1F2937',
+    paddingVertical: 4,
   },
   listContainer: {
-    padding: 16,
+    padding: 12,
+    paddingTop: 4,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 3,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cardBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EFF6FF',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   cardBadgeText: {
     fontFamily: 'Inter-Bold',
-    fontSize: 16,
-    color: '#1E40AF',
+    fontSize: 14,
+    color: '#6366F1',
   },
   cardHeaderText: {
     flex: 1,
@@ -252,48 +306,87 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: 'Inter-Bold',
-    fontSize: 16,
+    fontSize: 14,
     color: '#1F2937',
+    maxWidth: '85%',
   },
   cardSubtitle: {
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
+    fontSize: 12,
     color: '#6B7280',
+    maxWidth: '85%',
   },
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
-    padding: 8,
-    borderRadius: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   passwordText: {
     fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#374151',
+    fontSize: 13,
+    color: '#4B5563',
+    flex: 1,
   },
   passwordActions: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
   },
   actionButton: {
+    padding: 6,
+    marginLeft: 4,
+  },
+  copyButton: {
     padding: 4,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 6,
+    marginRight: 10,
+  },
+  editButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: '#6366F1',
+    marginLeft: 4,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 6,
+  },
+  deleteButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: '#DC2626',
+    marginLeft: 4,
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1E40AF',
-    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    bottom: 24,
+    right: 24,
     justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
   },
 });

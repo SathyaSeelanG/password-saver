@@ -32,20 +32,27 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PasswordProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="+not-found" />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack screenOptions={{ 
+          headerShown: false,
+          contentStyle: { backgroundColor: '#F5F7FA' },
+          headerStyle: { backgroundColor: '#6366F1' },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: { fontFamily: 'Inter-Bold' },
+          animation: 'slide_from_right' 
+        }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="password/[id]" options={{ 
+            headerShown: true,
+            title: 'Password Details',
+          }} />
           <Stack.Screen name="settings" options={{ 
             headerShown: true,
             title: 'Settings',
-            headerStyle: {
-              backgroundColor: '#1E40AF',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontFamily: 'Inter-Bold',
-            },
+          }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ 
+            title: 'Not Found',
+            headerShown: true
           }} />
         </Stack>
         <StatusBar style="light" />

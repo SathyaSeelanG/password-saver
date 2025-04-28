@@ -1,17 +1,23 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Home } from 'lucide-react-native';
 
 export default function NotFoundScreen() {
+  const router = useRouter();
+
   return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.text}>This screen doesn't exist.</Text>
-        <Link href="/" style={styles.link}>
-          <Text>Go to home screen!</Text>
-        </Link>
-      </View>
-    </>
+    <View style={styles.container}>
+      <Text style={styles.title}>Page Not Found</Text>
+      <Text style={styles.message}>The page you're looking for doesn't exist.</Text>
+      
+      <TouchableOpacity 
+        style={styles.homeButton}
+        onPress={() => router.replace('/')}
+      >
+        <Home size={20} color="#FFFFFF" />
+        <Text style={styles.homeButtonText}>Go to Home</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -21,13 +27,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#F5F7FA',
   },
-  text: {
+  title: {
+    fontFamily: 'Inter-Bold',
     fontSize: 20,
-    fontWeight: 600,
+    color: '#1F2937',
+    marginBottom: 8,
   },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
+  message: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  homeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  homeButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 8,
   },
 });

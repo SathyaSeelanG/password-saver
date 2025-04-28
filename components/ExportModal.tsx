@@ -1,7 +1,8 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { FileText, FileSpreadsheet, Table, X } from 'lucide-react-native';
 import { Password } from '@/types';
 import { exportPdf, exportExcel, exportCsv } from '@/utils/exportUtils';
+import * as Haptics from 'expo-haptics';
 
 type ExportModalProps = {
   visible: boolean;
@@ -12,36 +13,65 @@ type ExportModalProps = {
 export default function ExportModal({ visible, onClose, passwords }: ExportModalProps) {
   const handleExport = async (type: 'pdf' | 'excel' | 'csv') => {
     try {
+      // Vibrate on export
+      Platform.OS !== 'web' && Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      if (passwords.length === 0) {
+        Alert.alert('No Passwords', 'There are no passwords to export.');
+        return;
+      }
+      
       let fileContent;
       let fileName;
+      let fileType;
       
       switch (type) {
         case 'pdf':
           fileContent = await exportPdf(passwords);
-          fileName = 'passwords.pdf';
+          fileName = 'passwords.html';
+          fileType = 'text/html';
           break;
         case 'excel':
           fileContent = await exportExcel(passwords);
           fileName = 'passwords.xlsx';
+          fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           break;
         case 'csv':
           fileContent = await exportCsv(passwords);
           fileName = 'passwords.csv';
+          fileType = 'text/csv';
           break;
       }
 
       if (Platform.OS === 'web') {
-        const url = URL.createObjectURL(fileContent instanceof Blob ? fileContent : new Blob([fileContent]));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
+        try {
+          const blob = fileContent instanceof Blob 
+            ? fileContent 
+            : new Blob([fileContent], { type: fileType });
+          
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          onClose();
+        } catch (error) {
+          console.error('Download error:', error);
+          Alert.alert('Export Error', 'Failed to download the file. Please try again.');
+        }
+      } else {
+        // On native platforms, we would use sharing APIs
+        // For now, we'll just show a success message
+        Alert.alert('Export Successful', 'On a real device, this would save or share the file.');
+        onClose();
       }
-      
-      onClose();
     } catch (error) {
       console.error('Export error:', error);
+      Alert.alert('Export Error', 'An error occurred while exporting the data.');
     }
   };
 
@@ -67,9 +97,9 @@ export default function ExportModal({ visible, onClose, passwords }: ExportModal
           >
             <FileText size={24} color="#DC2626" />
             <View style={styles.exportOptionText}>
-              <Text style={styles.exportOptionTitle}>PDF Format</Text>
+              <Text style={styles.exportOptionTitle}>HTML Format</Text>
               <Text style={styles.exportOptionDescription}>
-                Export as a readable PDF document
+                Export as a printable HTML document
               </Text>
             </View>
           </TouchableOpacity>
